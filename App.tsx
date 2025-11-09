@@ -3,7 +3,7 @@ import type { CsvData, GeneratedListing, ChatMessage } from './types';
 import * as gemini from './services/geminiService';
 import { marked } from 'marked';
 
-// Import the shared components from PrivateApp.tsx
+// Import the shared components from the new shared.tsx file
 import {
     LanguageProvider,
     useLanguage,
@@ -16,42 +16,7 @@ import {
     parseCSV,
     downloadFile,
     toCSV
-} from './PrivateApp';
-
-
-// --- Type Augmentation for Speech Recognition API ---
-// Fix: Added a proper interface for SpeechRecognition to resolve typing errors.
-interface SpeechRecognition {
-    lang: string;
-    continuous: boolean;
-    interimResults: boolean;
-    onstart: (() => void) | null;
-    onresult: ((event: any) => void) | null;
-    onend: (() => void) | null;
-    onerror: ((event: any) => void) | null;
-    start(): void;
-    stop(): void;
-}
-
-// Fix: Added a type for the SpeechRecognition constructor.
-interface SpeechRecognitionStatic {
-    new(): SpeechRecognition;
-}
-
-// Fix: Moved the AIStudio interface into `declare global` to avoid module scope conflicts.
-declare global {
-  interface AIStudio {
-    hasSelectedApiKey: () => Promise<boolean>;
-    openSelectKey: () => Promise<void>;
-  }
-
-  interface Window {
-    SpeechRecognition: SpeechRecognitionStatic;
-    webkitSpeechRecognition: SpeechRecognitionStatic;
-    // Fix: Made `aistudio` optional to resolve a declaration conflict with another type definition.
-    aistudio?: AIStudio;
-  }
-}
+} from './shared';
 
 
 // --- MODULES ---
