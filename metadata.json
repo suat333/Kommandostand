@@ -1,0 +1,7 @@
+{
+  "name": "AI Handel Kommandostand",
+  "description": "An autonomous digital trading engine command center powered by AI. Manage acquisition strategies, generate product listings, and control field agents to identify, purchase, and resell profitable products.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
