@@ -1,13 +1,14 @@
-
 // Fix: Changed import to remove deprecated 'GenerateContentStreamResponse' and add 'Chat' for type safety.
 import { GoogleGenAI, GenerateContentResponse, Modality, Type, Chat } from "@google/genai";
 import { ChatMessage } from '../types';
 
-if (!process.env.API_KEY) {
-  throw new Error("API_KEY environment variable is not set");
-}
+// Safely initialize the AI client. This prevents the app from crashing in
+// environments where `process` is not defined (e.g., a standard browser deployment).
+// The Google GenAI SDK will handle the missing API key gracefully on API calls.
+const ai = new GoogleGenAI({ 
+  apiKey: (typeof process !== 'undefined' && process.env.API_KEY) ? process.env.API_KEY : "" 
+});
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const fileToGenerativePart = async (file: File) => {
   const base64EncodedDataPromise = new Promise<string>((resolve) => {
@@ -166,16 +167,28 @@ export const generateImage = async (prompt: string, aspectRatio: string): Promis
 
 // Video Generation (Veo)
 export const generateVideo = async (prompt: string, image: File | null, aspectRatio: string): Promise<string> => {
-    let newAiInstance: GoogleGenAI | null = null;
-    try {
-        const hasKey = await window.aistudio.hasSelectedApiKey();
-        if (!hasKey) {
+    let newAiInstance: GoogleGenAI;
+
+    // Handle environments where `window.aistudio` is not available (like Vercel)
+    if (typeof window.aistudio?.hasSelectedApiKey === 'function') {
+        try {
+            const hasKey = await window.aistudio.hasSelectedApiKey();
+            if (!hasKey) {
+                await window.aistudio.openSelectKey();
+            }
+            newAiInstance = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        } catch(e) {
             await window.aistudio.openSelectKey();
+            newAiInstance = new GoogleGenAI({ apiKey: process.env.API_KEY });
         }
-        newAiInstance = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    } catch(e) {
-        await window.aistudio.openSelectKey();
-        newAiInstance = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    } else {
+        // Fallback for standard browser environments.
+        const apiKey = (typeof process !== 'undefined' && process.env.API_KEY) ? process.env.API_KEY : "";
+        if (!apiKey) {
+            // Throw an error that the component can catch and display to the user.
+            throw new Error("API Key for video generation is not configured. Please set API_KEY in your deployment's environment variables.");
+        }
+        newAiInstance = new GoogleGenAI({ apiKey });
     }
     
     const veoPayload: any = {
@@ -209,9 +222,9 @@ export const generateVideo = async (prompt: string, image: File | null, aspectRa
     }
 
     if (operation.error) {
-        // Fix: Cast `operation.error` to `any` to safely access the `message` property and avoid a type error.
         const errorMessage = (operation.error as any)?.message || 'Unknown video generation error';
-        if(errorMessage.includes("Requested entity was not found.")){
+        // Guard the aistudio-specific error handling
+        if(typeof window.aistudio?.openSelectKey === 'function' && errorMessage.includes("Requested entity was not found.")){
             await window.aistudio.openSelectKey();
             throw new Error("API key invalid. Please select a valid key and try again.");
         }
